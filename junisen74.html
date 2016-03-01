@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>第74期A級順位戦数え上げ</title>
+		<style>
+table, tr, td, th{border: 1px black solid;}
+td{text-align:center;}
+.name{font-size:smaller;}
+.challenge{background-color:rgb(255,100,100)}
+.playoff{background-color:rgb(255,200,200)}
+.down{background-color:rgb(100,100,255)}
+td.count{text-align:right}
+		</style>
+	</head>
+	<body>
+
+<a href="http://db.shogitter.com">将棋ったーDB へ戻る</a>
+<h1>A級順位戦数え上げ</h1>
+<h2>現在の順位表</h2>
+<div id="table"></div>
+※？ボタンをクリックすると，そこが勝利である場合のみを下のテーブルで表示します．
+<h2>順位表数え上げ</h2>
+<p>マスの中：勝-敗 星 順位</p>
+<table id="searchtable"></table>
+<div id="search"></div>
+<h2>ソースコード</h2>
+<p><a href="junisen.ts">TypeScriptで書いてます</a></p>
+
+<script src="junisen.js"></script>
+<script>
+var players = minimumNames(["行方尚史八段", "渡辺　明竜王", "久保利明九段 ", "広瀬章人八段", "深浦康市九段", "郷田真隆王将 ", "森内俊之九段", "佐藤康光九段", "佐藤天彦八段", "屋敷伸之九段"]).map(function(n){return new Player(n)});
+	var playerTable = new PlayerTable(players);
+var doneGames = toP([[0,2],[1,3],[4,5],[6,9],[8,7],[0,7],[1,2],[8,3],[9,4],[6,5],[1,0],[2,4],[9,3],[7,5],[8,6],[9,0],[8,1],[5,2],[3,6],[7,4],[0,4],[6,1],[7,2],[5,3],[8,9],[0,3],[1,5],[9,2],[4,8],[7,6],[0,6],[1,4],[2,3],[8,5],[7,9],[0,5],[9,1],[8,2],[3,7],[4,6]]);
+var remainingGames = toP([[0,8],[1,7],[2,6],[3,4],[5,9]]);
+drawTable(playerTable, doneGames, remainingGames, {down: 2, playoff:true});
+
+function toP(indices){
+	return indices.map(function(g){
+		return g.map(function(pn){return players[pn]})
+	});
+}
+function minimumNames(names){
+	return names.map(function(name){
+		for(var l=2; l<=name.length; l++){
+			var abbrev=name.slice(0,l);
+			if(names.every(function(n){return name==n || n.indexOf(abbrev)!=0})) return abbrev;
+		}
+	});
+}
+</script>
+
+
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-19907360-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+	</body>
+</html>
