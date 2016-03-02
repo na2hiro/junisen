@@ -102,7 +102,6 @@ class GameTable{
 			newth.appendChild(t);
 			newtr.appendChild(newth);
 		});
-//		newtr.innerHTML="<th>棋士</th><th>勝敗</th><th>順</th><th>確</th><th>挑</th><th>プ</th><th>降</th>";
 		this.playerTable.players.forEach((player)=>{
 			var newtr = <HTMLTableRowElement>table.insertRow(table.rows.length);
 			var mark="";
@@ -137,60 +136,54 @@ class GameTable{
 			this.map[player.name].forEach((game)=>{
 				newtd = newtr.insertCell(newtr.cells.length);
 				var log = game.getLog(player);
-				newtd.innerHTML = "<div><span class='result'>"+(typeof log.win === "undefined" ? "　" : this.getWinMark(log.win))+"</span>"
+				if(typeof log.win=="undefined"){
+					newtd.appendChild(function(){
+						var div = document.createElement("div");
+						div.appendChild((function () {
+							var span = document.createElement("span");
+							span.className = "result";
+							span.appendChild(ToggleSetting(player.name, log.enemy.name));
+							return span;
+						})());
+						div.appendChild((function () {
+							var span = document.createElement("span");
+							span.className = "name";
+							span.textContent = log.enemy.name;
+							return span;
+						})());
+						return div;
+					}())
+				}else{
+					newtd.innerHTML = "<div><span class='result'>"+(typeof log.win === "undefined"? "　" : this.getWinMark(log.win))+"</span>"
 						+"<span class='name'>"+log.enemy.name+"</span></div>";
+				}
 			});
 		});
 		div.appendChild(table);
-	}
-	print(tempGames: Game[]){
-		var div = document.getElementById("search");
-		var table = <HTMLTableElement>document.createElement("table");
-		tempGames.forEach((game)=>table.className+=" res"+game.players[0].name+"_"+game.players[1].name);
-		this.playerTable.players.forEach((player)=>{
-			var newtr = <HTMLTableRowElement>table.insertRow(table.rows.length);
-			if(player.challenge) newtr.className="challenge";
-			else if(player.playoff) newtr.className="playoff";
-			else if(player.down) newtr.className="down";
-			var newtd = newtr.insertCell(newtr.cells.length);
-			newtd.appendChild(document.createTextNode(player.name));
-			newtd = newtr.insertCell(newtr.cells.length);
-			newtd.appendChild(document.createTextNode(player.win+"-"+player.lose));
-			newtd = newtr.insertCell(newtr.cells.length);
-			newtd.appendChild(document.createTextNode((player.rank+1).toString()));
-			newtd = newtr.insertCell(newtr.cells.length);
-			newtd.appendChild(document.createTextNode(player.challenge ? "挑" : (player.playoff ? "プ" : (player.down ? "降" : ""))));
-			
-			this.map[player.name].forEach((game)=>{
-				var log = game.getLog(player);
-				if(!log.temp)return;
-				newtd = newtr.insertCell(newtr.cells.length);
-				newtd.innerHTML = "<div class='result'>"+(typeof log.win === "undefined" ? "-" : this.getWinMark(log.win))+"<span class='name'>"+(log.temp?log.enemy.name.slice(0,1):"")+"</span></div>";
-			});
-		});
-		table.style.display="inline-block"
-		div.appendChild(table);
-	}
-	printLine(tempGames: Game[]){
+
 		var table = <HTMLTableElement>document.getElementById("searchtable");
+		this.searched.forEach((row, n)=>{
+			this.insertLineByObj(row, n, table);
+		})
+	}
+	insertLineByObj(tempPlayers: any[], n, table){
 		var newtr = <HTMLTableRowElement>table.insertRow(table.rows.length);
-		tempGames.forEach((game)=>newtr.className+=" res"+game.players[0].name+"_"+game.players[1].name);
-		this.playerTable.players.forEach((player)=>{
+//		newtr.className = tempGames.map((game)=>"res"+game.players[0].name+"_"+game.players[1].name).join(" ");
+		tempPlayers.forEach((player)=>{
 			var newtd = newtr.insertCell(newtr.cells.length);
 
 			if(player.challenge) newtd.className="challenge";
 			else if(player.playoff) newtd.className="playoff";
 			else if(player.down) newtd.className="down";
-			newtd.innerHTML=player.win+"-"+player.lose;
-			
-			this.map[player.name].forEach((game)=>{
-				var log = game.getLog(player);
-				if(!log.temp)return;
-				newtd.innerHTML+= "<span class='result'>"+(typeof log.win === "undefined" ? "-" : this.getWinMark(log.win))+"</span>";
-			});
-			newtd.innerHTML+="("+(player.rank+1)+")";
+			newtd.innerHTML=player.win+"-"+player.lose
+				+player.result.map((win)=>{
+					if(win===null)return null;
+					return this.getWinMark(win);
+				}).filter(n=>n).join("")+"("+(player.rank+1)+")";
 		});
 		//table.appendChild(newtr);
+		var newtd = newtr.insertCell(newtr.cells.length);
+		newtd.textContent= ("0000000000"+n.toString(2)).substr(-10);
 	}
 	rankPlayers(){
 		var players=this.playerTable.players.slice(0);
@@ -222,17 +215,39 @@ class GameTable{
 			players[players.length-1-i].down=true;
 			players[players.length-1-i].countDown++;
 		}
+
+		var ret = [];
+		for(var i=0; i<this.playerTable.players.length; i++){
+			var player = this.playerTable.players[i];
+			ret.push({
+				win: player.win,
+                lose: player.lose,
+				playoff: player.playoff,
+				challenge: player.challenge,
+				down: player.down,
+				rank: player.rank,
+				result: this.map[player.name].map((game)=>{
+					var log = game.getLog(player);
+					if(!log.temp)return null;
+					return log.win;
+				}).filter(n=>n!==null),
+			})
+		}
+		return ret;
 	}
+	searched: any[][];
 	search(){
+		this.searched = [];
 		this.playerTable.players.forEach((player)=>{
 			player.resetCounts();
 		});
+
 		var table = <HTMLTableElement>document.getElementById("searchtable");
 		var newtr = table.insertRow(0);
 		this.playerTable.players.forEach((player)=>{
 			newtr.appendChild((()=>{
 				var th = document.createElement("th");
-				th.innerHTML=player.name;
+				th.textContent=player.name;
 				return th;
 			})());
 		});
@@ -242,8 +257,8 @@ class GameTable{
 	}
 	searchAndRank(remainingGames: Game[], i: number){
 		if(remainingGames.length<=i){
-			this.rankPlayers();
-			this.printLine(remainingGames);
+			var ranks = this.rankPlayers();
+			this.searched.push(ranks);
 			return;
 		}
 		var game = remainingGames[i];
@@ -255,9 +270,9 @@ class GameTable{
 		this.tempLoseBack(game);
 	}
 }
-
+var gameTable
 function drawTable(playerTable, doneGames, remainingGames, setting){
-	var gameTable = new GameTable(playerTable, setting);
+	gameTable = new GameTable(playerTable, setting);
 	doneGames.map((arr)=>new Game(arr, true)).forEach((game)=>gameTable.add(game));
 	remainingGames.map((arr)=>new Game(arr, false)).forEach((game)=>gameTable.add(game));
 
@@ -265,13 +280,28 @@ function drawTable(playerTable, doneGames, remainingGames, setting){
 	//gameTable.printTable();
 	
 }
-
-
-
-
-
-
-/*
+function ToggleSetting(win, lose) {
+	var button = document.createElement("button");
+	button.className = "button" + win + "_" + lose;
+	button.textContent = "？";
+	var start = true;
+	button.onclick = onClick;
+	function offClick() {
+		removeCSSRules(".res" + win + "_" + lose);
+		removeCSSRules(".res" + lose + "_" + win);
+		document.getElementsByClassName("button" + win + "_" + lose)[0].textContent = "？";
+		document.getElementsByClassName("button" + lose + "_" + win)[0].textContent = "？";
+		button.onclick = onClick;
+	}
+	function onClick() {
+		addCSSRules(".res" + lose + "_" + win + "{display:none;}");
+		removeCSSRules(".res" + win + "_" + lose);
+		document.getElementsByClassName("button" + win + "_" + lose)[0].textContent = "○";
+		document.getElementsByClassName("button" + lose + "_" + win)[0].textContent = "●";
+		button.onclick = offClick;
+	}
+	return button;
+}
 function addCSSRules(cssTexts){
 	if(!(cssTexts instanceof Array)) cssTexts=[cssTexts];
 	cssTexts.forEach(function(cssText){
@@ -283,8 +313,8 @@ function removeCSSRules(cssSelectors){
 	var css=<CSSStyleSheet>document.styleSheets.item(0);
 	for(var i=css.cssRules.length-1; i>=0; i--){
 		var rule = css.cssRules[i];
-		if(cssSelectors.indexOf(rule.selectorText)>=0){
+		if(cssSelectors.indexOf(rule.cssText)>=0){
 			css.deleteRule(i);
 		}
 	}
-}*/
+}
