@@ -1,3 +1,8 @@
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var Player = (function () {
     function Player(name) {
         this.name = name;
@@ -18,6 +23,17 @@ var Player = (function () {
 var PlayerTable = (function () {
     function PlayerTable(players) {
         this.players = players;
+        players.map(function (player) {
+            for (var l = 2; l <= player.name.length; l++) {
+                var abbrev = player.name.slice(0, l);
+                if (players.every(function (p) {
+                    return player.name == p.name || p.name.indexOf(abbrev) != 0;
+                })) {
+                    player.abbrev = abbrev;
+                    return;
+                }
+            }
+        });
     }
     PlayerTable.prototype.writeOrder = function () {
         this.players.forEach(function (player, num) {
@@ -52,6 +68,16 @@ var Game = (function () {
     };
     return Game;
 })();
+var NullGame = (function (_super) {
+    __extends(NullGame, _super);
+    function NullGame() {
+        _super.apply(this, arguments);
+    }
+    NullGame.prototype.getLog = function (player) {
+        return { enemy: null };
+    };
+    return NullGame;
+})(Game);
 var GameTable = (function () {
     function GameTable(playerTable, setting) {
         var _this = this;
@@ -69,8 +95,9 @@ var GameTable = (function () {
     };
     GameTable.prototype.add = function (game) {
         this.games.push(game);
-        this.map[game.players[0].name].push(game);
-        this.map[game.players[1].name].push(game);
+        for (var i = 0; i < game.players.length; i++) {
+            this.map[game.players[i].name].push(game);
+        }
         if (game.result) {
             game.players[0].win++;
             game.players[1].lose++;
@@ -102,19 +129,28 @@ var GameTable = (function () {
         var div = document.getElementById("table");
         var table = document.createElement("table");
         var newTr = table.insertRow(table.rows.length);
-        var texts = ["棋士", "勝敗", "順", "確", "挑", "プ", "降"];
+        var texts = ["棋士", "勝敗", "順", "確"];
+        if (this.setting.playoff) {
+            texts.push("挑");
+            texts.push("プ");
+        }
+        else {
+            texts.push("昇");
+        }
+        texts.push("降");
         texts.forEach(function (text) {
             var t = document.createTextNode(text);
             var newTh = document.createElement("th");
             newTh.appendChild(t);
             newTr.appendChild(newTh);
         });
+        var numRounds = 0;
         this.playerTable.players.forEach(function (player) {
             var newTr = table.insertRow(table.rows.length);
             var mark = "";
             if (player.countChallenge == max) {
                 newTr.className = "challenge";
-                mark = "挑";
+                mark = _this.setting.playoff ? "挑" : "昇";
             }
             else if (player.countPlayoff == max) {
                 newTr.className = "playoff";
@@ -135,16 +171,22 @@ var GameTable = (function () {
             newTd = newTr.insertCell(newTr.cells.length);
             newTd.className = "count";
             newTd.appendChild(document.createTextNode(player.countChallenge.toString()));
-            newTd = newTr.insertCell(newTr.cells.length);
-            newTd.className = "count";
-            newTd.appendChild(document.createTextNode(player.countPlayoff.toString()));
+            if (_this.setting.playoff) {
+                newTd = newTr.insertCell(newTr.cells.length);
+                newTd.className = "count";
+                newTd.appendChild(document.createTextNode(player.countPlayoff.toString()));
+            }
             newTd = newTr.insertCell(newTr.cells.length);
             newTd.className = "count";
             newTd.appendChild(document.createTextNode(player.countDown.toString()));
+            var numRoundsInner = 0;
             _this.map[player.name].forEach(function (game) {
+                numRoundsInner++;
                 newTd = newTr.insertCell(newTr.cells.length);
                 var log = game.getLog(player);
-                if (typeof log.win == "undefined") {
+                if (!log.enemy) {
+                }
+                else if (typeof log.win == "undefined") {
                     newTd.appendChild(function () {
                         var div = document.createElement("div");
                         div.appendChild((function () {
@@ -156,7 +198,7 @@ var GameTable = (function () {
                         div.appendChild((function () {
                             var span = document.createElement("span");
                             span.className = "name";
-                            span.textContent = log.enemy.name;
+                            span.textContent = log.enemy.abbrev;
                             return span;
                         })());
                         return div;
@@ -164,10 +206,17 @@ var GameTable = (function () {
                 }
                 else {
                     newTd.innerHTML = "<div><span class='result'>" + (typeof log.win === "undefined" ? "　" : GameTable.getWinMark(log.win)) + "</span>"
-                        + "<span class='name'>" + log.enemy.name + "</span></div>";
+                        + "<span class='name'>" + log.enemy.abbrev + "</span></div>";
                 }
             });
+            numRounds = Math.max(numRoundsInner, numRounds);
         });
+        for (var i = 1; i <= numRounds; i++) {
+            var t = document.createTextNode(i + "回戦");
+            var newTh = document.createElement("th");
+            newTh.appendChild(t);
+            newTr.appendChild(newTh);
+        }
         div.appendChild(table);
         var table = document.getElementById("searchtable");
         this.searched.forEach(function (row) {
@@ -202,21 +251,30 @@ var GameTable = (function () {
         players.forEach(function (player, num) {
             player.rank = num;
         });
-        var flagPlayoff = false;
-        for (var i = 1; i < players.length; i++) {
-            if (players[0].win != players[i].win)
-                break;
-            flagPlayoff = true;
-            players[i].playoff = true;
-            players[i].countPlayoff++;
-        }
-        if (flagPlayoff) {
-            players[0].playoff = true;
-            players[0].countPlayoff++;
+        if (this.setting.playoff) {
+            // assume only 1 can challenge
+            var flagPlayoff = false;
+            for (var i = 1; i < players.length; i++) {
+                if (players[0].win != players[i].win)
+                    break;
+                flagPlayoff = true;
+                players[i].playoff = true;
+                players[i].countPlayoff++;
+            }
+            if (flagPlayoff) {
+                players[0].playoff = true;
+                players[0].countPlayoff++;
+            }
+            else {
+                players[0].challenge = true;
+                players[0].countChallenge++;
+            }
         }
         else {
-            players[0].challenge = true;
-            players[0].countChallenge++;
+            for (var i = 0; i < players.length && i < this.setting.up; i++) {
+                players[i].challenge = true;
+                players[i].countChallenge++;
+            }
         }
         for (var i = 0; i < players.length && i < this.setting.down; i++) {
             players[players.length - 1 - i].down = true;
@@ -259,11 +317,11 @@ var GameTable = (function () {
         this.playerTable.players.forEach(function (player) {
             newTr.appendChild((function () {
                 var th = document.createElement("th");
-                th.textContent = player.name;
+                th.textContent = player.abbrev;
                 return th;
             })());
         });
-        var remainingGames = this.games.filter(function (game) { return !game.result; });
+        var remainingGames = this.games.filter(function (game) { return !game.result && !(game instanceof NullGame); });
         this.searchAndRank(remainingGames, 0);
         return Math.pow(2, remainingGames.length);
     };
@@ -284,12 +342,31 @@ var GameTable = (function () {
     return GameTable;
 })();
 var gameTable;
-function drawTable(playerTable, doneGames, remainingGames, setting) {
+function drawTable(names, doneGames, remainingGames, setting) {
+    var players = names.map(function (n) {
+        return new Player(n);
+    });
+    var playerTable = new PlayerTable(players);
+    doneGames = toP(doneGames);
+    remainingGames = toP(remainingGames);
+    function toP(indices) {
+        return indices.map(function (g) {
+            return g.map(function (pn) {
+                return players[pn];
+            });
+        });
+    }
     gameTable = new GameTable(playerTable, setting);
-    doneGames.map(function (arr) { return new Game(arr, true); }).forEach(function (game) { return gameTable.add(game); });
-    remainingGames.map(function (arr) { return new Game(arr, false); }).forEach(function (game) { return gameTable.add(game); });
+    doneGames.map(function (arr) {
+        if (arr.length == 1) {
+            return new NullGame(arr);
+        }
+        else {
+            return new Game(arr, true);
+        }
+    }).forEach(function (game) { return gameTable.add(game); });
+    remainingGames.filter(function (arr) { return arr.length == 2; }).map(function (arr) { return new Game(arr, false); }).forEach(function (game) { return gameTable.add(game); });
     gameTable.printSearched();
-    //gameTable.printTable();
 }
 var toggleState = {};
 function ToggleSetting(win, lose) {
@@ -322,7 +399,10 @@ function ToggleSetting(win, lose) {
     }
     return button;
 }
-var styleSheet = document.styleSheets.item(0);
+var style = document.createElement("style");
+style.type = "text/css";
+document.getElementsByTagName("head").item(0).appendChild(style);
+var styleSheet = style.sheet;
 function addCSSRule(cssText) {
     var index = styleSheet.insertRule(cssText, styleSheet.cssRules.length);
     return styleSheet.cssRules[index];

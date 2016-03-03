@@ -9,7 +9,7 @@ var notyetGames = $.map(games.notyet, function (n) {
 
 console.log("var names =" + JSON.stringify(names) + ";\n"
     + "var doneGames =" + JSON.stringify(doneGames) + ";\n"
-    + "var notyetGames =" + JSON.stringify(notyetGames) + ";\n");
+    + "var remainingGames =" + JSON.stringify(notyetGames) + ";\n");
 
 function collectNames() {
     var names = $("table.league tbody tr td:nth-child(3)").map(function (n, tr) {
@@ -25,7 +25,7 @@ function getIndex(name) {
     for (var i = 0; i < names.length; i++) {
         if (names[i].indexOf(name) == 0)return i;
     }
-    throw "no match: " + name;
+    return null;
 }
 function collectTable() {
     var matrix = $("table.league tbody tr").map(function (n, tr) {
@@ -45,12 +45,14 @@ function getCellInfo(td) {
     var tmp = td.textContent.split(/\n/).map(function (s) {
         return s.trim();
     });
+    if (!tmp[1]) return null;
     return {
         score: (tmp[0] == "○" ? 1 : (tmp[0] == "●" ? -1 : 0)),
         enemy: getIndex(tmp[1])
     };
 }
 function formatCellInfo(cellInfo, index) {
+    if (!cellInfo) return [index];
     if (cellInfo.score == 0) return [Infinity, index, cellInfo.enemy].sort();
     return cellInfo.score == 1 ? [index, cellInfo.enemy] : [cellInfo.enemy, index];
 }
@@ -62,6 +64,10 @@ function tableToGames(table) {
         var round = [];
         for (var i = 0; i < table.length; i++) {
             var game = table[i][j];
+            if (game.length == 1) {
+                ret.push([game]); // against concat
+                continue;
+            }
             if (game.length == 3) {
                 notyetround = true;
                 game = [game[0], game[1]];
