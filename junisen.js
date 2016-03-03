@@ -60,12 +60,13 @@ var GameTable = (function () {
         this.map = {};
         this.games = [];
         playerTable.writeOrder();
-        var players = playerTable.players;
-        players.forEach(function (player) {
+        playerTable.players.forEach(function (player) {
             _this.map[player.name] = [];
         });
     }
-    GameTable.prototype.getWinMark = function (win) { return win ? "○" : "●"; };
+    GameTable.getWinMark = function (win) {
+        return win ? "○" : "●";
+    };
     GameTable.prototype.add = function (game) {
         this.games.push(game);
         this.map[game.players[0].name].push(game);
@@ -75,22 +76,22 @@ var GameTable = (function () {
             game.players[1].lose++;
         }
     };
-    GameTable.prototype.tempWin = function (game) {
+    GameTable.tempWin = function (game) {
         game.players[0].win++;
         game.players[1].lose++;
         game.tempWin(game.players[0]);
     };
-    GameTable.prototype.tempWinBack = function (game) {
+    GameTable.tempWinBack = function (game) {
         game.players[0].win--;
         game.players[1].lose--;
         game.tempWinBack();
     };
-    GameTable.prototype.tempLose = function (game) {
+    GameTable.tempLose = function (game) {
         game.players[0].lose++;
         game.players[1].win++;
         game.tempWin(game.players[1]);
     };
-    GameTable.prototype.tempLoseBack = function (game) {
+    GameTable.tempLoseBack = function (game) {
         game.players[0].lose--;
         game.players[1].win--;
         game.tempWinBack();
@@ -100,51 +101,51 @@ var GameTable = (function () {
         var max = this.search();
         var div = document.getElementById("table");
         var table = document.createElement("table");
-        var newtr = table.insertRow(table.rows.length);
+        var newTr = table.insertRow(table.rows.length);
         var texts = ["棋士", "勝敗", "順", "確", "挑", "プ", "降"];
         texts.forEach(function (text) {
             var t = document.createTextNode(text);
-            var newth = document.createElement("th");
-            newth.appendChild(t);
-            newtr.appendChild(newth);
+            var newTh = document.createElement("th");
+            newTh.appendChild(t);
+            newTr.appendChild(newTh);
         });
         this.playerTable.players.forEach(function (player) {
-            var newtr = table.insertRow(table.rows.length);
+            var newTr = table.insertRow(table.rows.length);
             var mark = "";
             if (player.countChallenge == max) {
-                newtr.className = "challenge";
+                newTr.className = "challenge";
                 mark = "挑";
             }
             else if (player.countPlayoff == max) {
-                newtr.className = "playoff";
+                newTr.className = "playoff";
                 mark = "プ";
             }
             else if (player.countDown == max) {
-                newtr.className = "down";
+                newTr.className = "down";
                 mark = "降";
             }
-            var newtd = newtr.insertCell(newtr.cells.length);
-            newtd.appendChild(document.createTextNode(player.name));
-            newtd = newtr.insertCell(newtr.cells.length);
-            newtd.appendChild(document.createTextNode(player.win + "-" + player.lose));
-            newtd = newtr.insertCell(newtr.cells.length);
-            newtd.appendChild(document.createTextNode((player.rank + 1).toString()));
-            newtd = newtr.insertCell(newtr.cells.length);
-            newtd.appendChild(document.createTextNode(mark));
-            newtd = newtr.insertCell(newtr.cells.length);
-            newtd.className = "count";
-            newtd.appendChild(document.createTextNode(player.countChallenge.toString()));
-            newtd = newtr.insertCell(newtr.cells.length);
-            newtd.className = "count";
-            newtd.appendChild(document.createTextNode(player.countPlayoff.toString()));
-            newtd = newtr.insertCell(newtr.cells.length);
-            newtd.className = "count";
-            newtd.appendChild(document.createTextNode(player.countDown.toString()));
+            var newTd = newTr.insertCell(newTr.cells.length);
+            newTd.appendChild(document.createTextNode(player.name));
+            newTd = newTr.insertCell(newTr.cells.length);
+            newTd.appendChild(document.createTextNode(player.win + "-" + player.lose));
+            newTd = newTr.insertCell(newTr.cells.length);
+            newTd.appendChild(document.createTextNode((player.rank + 1).toString()));
+            newTd = newTr.insertCell(newTr.cells.length);
+            newTd.appendChild(document.createTextNode(mark));
+            newTd = newTr.insertCell(newTr.cells.length);
+            newTd.className = "count";
+            newTd.appendChild(document.createTextNode(player.countChallenge.toString()));
+            newTd = newTr.insertCell(newTr.cells.length);
+            newTd.className = "count";
+            newTd.appendChild(document.createTextNode(player.countPlayoff.toString()));
+            newTd = newTr.insertCell(newTr.cells.length);
+            newTd.className = "count";
+            newTd.appendChild(document.createTextNode(player.countDown.toString()));
             _this.map[player.name].forEach(function (game) {
-                newtd = newtr.insertCell(newtr.cells.length);
+                newTd = newTr.insertCell(newTr.cells.length);
                 var log = game.getLog(player);
                 if (typeof log.win == "undefined") {
-                    newtd.appendChild(function () {
+                    newTd.appendChild(function () {
                         var div = document.createElement("div");
                         div.appendChild((function () {
                             var span = document.createElement("span");
@@ -162,44 +163,42 @@ var GameTable = (function () {
                     }());
                 }
                 else {
-                    newtd.innerHTML = "<div><span class='result'>" + (typeof log.win === "undefined" ? "　" : _this.getWinMark(log.win)) + "</span>"
+                    newTd.innerHTML = "<div><span class='result'>" + (typeof log.win === "undefined" ? "　" : GameTable.getWinMark(log.win)) + "</span>"
                         + "<span class='name'>" + log.enemy.name + "</span></div>";
                 }
             });
         });
         div.appendChild(table);
         var table = document.getElementById("searchtable");
-        this.searched.forEach(function (row, n) {
-            _this.insertLineByObj(row, n, table);
+        this.searched.forEach(function (row) {
+            _this.insertLineByObj(row, table);
         });
     };
-    GameTable.prototype.insertLineByObj = function (tempPlayers, n, table) {
-        var _this = this;
-        var newtr = table.insertRow(table.rows.length);
-        newtr.className = tempPlayers.games.map(function (game) { return "res" + game.win + "_" + game.lose; }).join(" ");
+    GameTable.prototype.insertLineByObj = function (tempPlayers, table) {
+        var newTr = table.insertRow(table.rows.length);
+        newTr.className = tempPlayers.games.map(function (game) { return "res" + game.win + "_" + game.lose; }).join(" ");
         tempPlayers.players.forEach(function (player) {
-            var newtd = newtr.insertCell(newtr.cells.length);
+            var newTd = newTr.insertCell(newTr.cells.length);
             if (player.challenge)
-                newtd.className = "challenge";
+                newTd.className = "challenge";
             else if (player.playoff)
-                newtd.className = "playoff";
+                newTd.className = "playoff";
             else if (player.down)
-                newtd.className = "down";
-            newtd.innerHTML = player.win + "-" + player.lose
+                newTd.className = "down";
+            newTd.innerHTML = player.win + "-" + player.lose
                 + player.result.map(function (win) {
                     if (win === null)
                         return null;
-                    return _this.getWinMark(win);
+                    return GameTable.getWinMark(win);
                 }).filter(function (n) { return n; }).join("") + "(" + (player.rank + 1) + ")";
         });
     };
     GameTable.prototype.rankPlayers = function (games) {
         var players = this.playerTable.players.slice(0);
-        players.forEach(function (player, num) {
+        players.forEach(function (player) {
             player.resetFlags();
         });
         players.sort(function (p1, p2) { return p1.win != p2.win ? p2.win - p1.win : p1.order - p2.order; });
-        //console.log(players.map((p)=>p.name+" "+p.win+" "+p.order).join())
         players.forEach(function (player, num) {
             player.rank = num;
         });
@@ -256,9 +255,9 @@ var GameTable = (function () {
             player.resetCounts();
         });
         var table = document.getElementById("searchtable");
-        var newtr = table.insertRow(0);
+        var newTr = table.insertRow(0);
         this.playerTable.players.forEach(function (player) {
-            newtr.appendChild((function () {
+            newTr.appendChild((function () {
                 var th = document.createElement("th");
                 th.textContent = player.name;
                 return th;
@@ -275,12 +274,12 @@ var GameTable = (function () {
             return;
         }
         var game = remainingGames[i];
-        this.tempWin(game);
+        GameTable.tempWin(game);
         this.searchAndRank(remainingGames, i + 1);
-        this.tempWinBack(game);
-        this.tempLose(game);
+        GameTable.tempWinBack(game);
+        GameTable.tempLose(game);
         this.searchAndRank(remainingGames, i + 1);
-        this.tempLoseBack(game);
+        GameTable.tempLoseBack(game);
     };
     return GameTable;
 })();
@@ -298,7 +297,6 @@ function ToggleSetting(win, lose) {
     var button = document.createElement("button");
     button.className = "button" + win + "_" + lose;
     button.textContent = "？";
-    var start = true;
     button.onclick = onClick;
     if (!toggleState[id]) {
         toggleState[id] = {};
@@ -326,18 +324,16 @@ function ToggleSetting(win, lose) {
 }
 var styleSheet = document.styleSheets.item(0);
 function addCSSRule(cssText) {
-    console.log("add", cssText);
     var index = styleSheet.insertRule(cssText, styleSheet.cssRules.length);
     return styleSheet.cssRules[index];
 }
 function removeCSSRule(item) {
-    console.log("remove", item.cssText);
     for (var i = 0; i < styleSheet.cssRules.length; i++) {
         if (styleSheet.cssRules[i] == item) {
             styleSheet.deleteRule(i);
             return;
         }
     }
-    console.warn("couldnt remove rule");
+    console.warn("couldn't remove rule");
 }
 //# sourceMappingURL=junisen.js.map
