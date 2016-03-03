@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>第74期B1級順位戦数え上げ</title>
+		<link rel="stylesheet" type="text/css" href="../../css/style.css">
+	</head>
+	<body>
+
+<a href="http://db.shogitter.com">将棋ったーDB へ戻る</a>
+<h1>第74期B1級順位戦数え上げ</h1>
+<h2>現在の順位表</h2>
+<div id="table"></div>
+※？ボタンをクリックすると，そこが勝利である場合のみを下のテーブルで表示します．
+<h2>順位表数え上げ</h2>
+<p>マスの中：勝-敗 星 順位</p>
+<table id="searchtable"></table>
+<div id="search"></div>
+<h2>ソースコード</h2>
+<p><a href="../../src/junisen.ts">TypeScriptで書いてます</a></p>
+
+<script src="../../src/junisen.js"></script>
+<script>
+var names =["三浦弘行九段","阿久津主税八段","松尾　歩八段","山崎隆之八段","橋本崇載八段","木村一基八段","豊島将之七段","村山慈明七段","畠山　鎮七段","谷川浩司九段","丸山忠久九段","稲葉　陽八段","先崎　学九段"];
+var doneGames =[[7],[0,11],[1,8],[2,10],[3,4],[5,6],[9,12],[6],[2,0],[11,1],[9,3],[4,12],[5,8],[10,7],[0],[1,6],[2,5],[11,3],[4,9],[12,7],[10,8],[3],[0,6],[7,1],[4,2],[5,10],[8,12],[11,9],[8],[0,12],[1,2],[5,3],[10,4],[11,6],[9,7],[12],[0,8],[9,1],[11,2],[10,3],[4,6],[5,7],[4],[0,9],[1,5],[2,8],[6,3],[11,7],[10,12],[11],[0,1],[2,12],[3,7],[5,4],[6,8],[9,10],[10],[0,5],[3,1],[6,2],[7,4],[8,9],[11,12],[1],[4,0],[2,3],[5,12],[6,9],[8,7],[11,10],[5],[0,7],[10,1],[2,9],[3,8],[4,11],[6,12],[2],[10,0],[4,1],[3,12],[9,5],[6,7],[11,8],[9]];
+var remainingGames =[[0,3],[1,12],[2,7],[4,8],[11,5],[10,6]];
+
+drawTable(names, doneGames, remainingGames, {
+	down: 2,
+	playoff: false,
+	up: 2,
+});
+</script>
+
+
+
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-19907360-1']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+	</body>
+</html>
