@@ -19,6 +19,11 @@ var PlayerTable = (function () {
     function PlayerTable(players) {
         this.players = players;
     }
+    PlayerTable.prototype.writeOrder = function () {
+        this.players.forEach(function (player, num) {
+            player.order = num;
+        });
+    };
     return PlayerTable;
 })();
 var Game = (function () {
@@ -54,6 +59,7 @@ var GameTable = (function () {
         this.setting = setting;
         this.map = {};
         this.games = [];
+        playerTable.writeOrder();
         var players = playerTable.players;
         players.forEach(function (player) {
             _this.map[player.name] = [];
@@ -143,7 +149,7 @@ var GameTable = (function () {
                         div.appendChild((function () {
                             var span = document.createElement("span");
                             span.className = "result";
-                            span.appendChild(ToggleSetting(player.name, log.enemy.name));
+                            span.appendChild(ToggleSetting(player.order, log.enemy.order));
                             return span;
                         })());
                         div.appendChild((function () {
@@ -170,8 +176,8 @@ var GameTable = (function () {
     GameTable.prototype.insertLineByObj = function (tempPlayers, n, table) {
         var _this = this;
         var newtr = table.insertRow(table.rows.length);
-        //		newtr.className = tempGames.map((game)=>"res"+game.players[0].name+"_"+game.players[1].name).join(" ");
-        tempPlayers.forEach(function (player) {
+        newtr.className = tempPlayers.games.map(function (game) { return "res" + game.win + "_" + game.lose; }).join(" ");
+        tempPlayers.players.forEach(function (player) {
             var newtd = newtr.insertCell(newtr.cells.length);
             if (player.challenge)
                 newtd.className = "challenge";
@@ -186,15 +192,11 @@ var GameTable = (function () {
                     return _this.getWinMark(win);
                 }).filter(function (n) { return n; }).join("") + "(" + (player.rank + 1) + ")";
         });
-        //table.appendChild(newtr);
-        var newtd = newtr.insertCell(newtr.cells.length);
-        newtd.textContent = ("0000000000" + n.toString(2)).substr(-10);
     };
-    GameTable.prototype.rankPlayers = function () {
+    GameTable.prototype.rankPlayers = function (games) {
         var players = this.playerTable.players.slice(0);
         players.forEach(function (player, num) {
             player.resetFlags();
-            player.order = num;
         });
         players.sort(function (p1, p2) { return p1.win != p2.win ? p2.win - p1.win : p1.order - p2.order; });
         //console.log(players.map((p)=>p.name+" "+p.win+" "+p.order).join())
@@ -221,10 +223,10 @@ var GameTable = (function () {
             players[players.length - 1 - i].down = true;
             players[players.length - 1 - i].countDown++;
         }
-        var ret = [];
+        var ret = { players: [], games: [] };
         for (var i = 0; i < this.playerTable.players.length; i++) {
             var player = this.playerTable.players[i];
-            ret.push({
+            ret.players.push({
                 win: player.win,
                 lose: player.lose,
                 playoff: player.playoff,
@@ -237,6 +239,13 @@ var GameTable = (function () {
                         return null;
                     return log.win;
                 }).filter(function (n) { return n !== null; })
+            });
+        }
+        for (var i = 0; i < games.length; i++) {
+            var game = games[i];
+            ret.games.push({
+                win: game.temp == game.players[0] ? game.players[0].order : game.players[1].order,
+                lose: game.temp == game.players[0] ? game.players[1].order : game.players[0].order
             });
         }
         return ret;
@@ -261,7 +270,7 @@ var GameTable = (function () {
     };
     GameTable.prototype.searchAndRank = function (remainingGames, i) {
         if (remainingGames.length <= i) {
-            var ranks = this.rankPlayers();
+            var ranks = this.rankPlayers(remainingGames);
             this.searched.push(ranks);
             return;
         }
@@ -283,44 +292,52 @@ function drawTable(playerTable, doneGames, remainingGames, setting) {
     gameTable.printSearched();
     //gameTable.printTable();
 }
+var toggleState = {};
 function ToggleSetting(win, lose) {
+    var id = [win, lose].sort().join("_");
     var button = document.createElement("button");
     button.className = "button" + win + "_" + lose;
     button.textContent = "？";
     var start = true;
     button.onclick = onClick;
-    function offClick() {
-        removeCSSRules(".res" + win + "_" + lose);
-        removeCSSRules(".res" + lose + "_" + win);
-        document.getElementsByClassName("button" + win + "_" + lose)[0].textContent = "？";
-        document.getElementsByClassName("button" + lose + "_" + win)[0].textContent = "？";
-        button.onclick = onClick;
+    if (!toggleState[id]) {
+        toggleState[id] = {};
     }
+    var state = toggleState[id];
+    state["button_" + win] = button;
     function onClick() {
-        addCSSRules(".res" + lose + "_" + win + "{display:none;}");
-        removeCSSRules(".res" + win + "_" + lose);
-        document.getElementsByClassName("button" + win + "_" + lose)[0].textContent = "○";
-        document.getElementsByClassName("button" + lose + "_" + win)[0].textContent = "●";
-        button.onclick = offClick;
+        if (state.css) {
+            removeCSSRule(state.css);
+        }
+        if (state.win == win) {
+            state.win = null;
+            state.css = null;
+            state["button_" + win].textContent = "？";
+            state["button_" + lose].textContent = "？";
+        }
+        else {
+            state.css = addCSSRule(".res" + lose + "_" + win + "{display:none;}");
+            state.win = win;
+            state["button_" + win].textContent = "○";
+            state["button_" + lose].textContent = "●";
+        }
     }
     return button;
 }
-function addCSSRules(cssTexts) {
-    if (!(cssTexts instanceof Array))
-        cssTexts = [cssTexts];
-    cssTexts.forEach(function (cssText) {
-        document.styleSheets.item(0).insertRule(cssText, 0);
-    });
+var styleSheet = document.styleSheets.item(0);
+function addCSSRule(cssText) {
+    console.log("add", cssText);
+    var index = styleSheet.insertRule(cssText, styleSheet.cssRules.length);
+    return styleSheet.cssRules[index];
 }
-function removeCSSRules(cssSelectors) {
-    if (!(cssSelectors instanceof Array))
-        cssSelectors = [cssSelectors];
-    var css = document.styleSheets.item(0);
-    for (var i = css.cssRules.length - 1; i >= 0; i--) {
-        var rule = css.cssRules[i];
-        if (cssSelectors.indexOf(rule.cssText) >= 0) {
-            css.deleteRule(i);
+function removeCSSRule(item) {
+    console.log("remove", item.cssText);
+    for (var i = 0; i < styleSheet.cssRules.length; i++) {
+        if (styleSheet.cssRules[i] == item) {
+            styleSheet.deleteRule(i);
+            return;
         }
     }
+    console.warn("couldnt remove rule");
 }
 //# sourceMappingURL=junisen.js.map
